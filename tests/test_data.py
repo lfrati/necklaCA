@@ -1,7 +1,5 @@
 import numpy as np
 
-# import pytest
-
 
 def get_oeis(seq):
     # TODO: is there a better api? this feel very brittle
