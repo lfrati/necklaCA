@@ -1,4 +1,5 @@
 from itertools import product
+import pickle
 
 import numba
 import numpy as np
@@ -35,7 +36,7 @@ def all_rots(seq: tuple):
         yield seq
 
 
-def make_necklaces_tuple(N):
+def make_group_tuple(N):
     seqs = list(product([0, 1], repeat=N))
     groups = {}
     for seq in seqs:
@@ -109,7 +110,7 @@ def dict2arr(D):
     return arr
 
 
-def _make_necklaces(vrot, N):
+def _make_group(vrot, N):
     # Idea: "fast > smart"
     #       1. Generate the 2**N numbers of N bits
     #       2. Rotate each one N times (one full rotation)
@@ -128,7 +129,7 @@ def _make_necklaces(vrot, N):
     return necklaces
 
 
-def make_necklaces(N):
+def make_group(N):
     """
     Wrapper that combines make_rot and _make_necklaces into a complete pass.
     NOTE:
@@ -136,14 +137,63 @@ def make_necklaces(N):
         better to just call make_rot once and pass it to _make_necklaces
     """
     _, vrot = make_rot(N)
-    return _make_necklaces(vrot, N)
+    return _make_group(vrot, N)
 
+
+def get_neck(N):
+    """
+    Precomputing everything can take a lot of space.
+    `get_neck` is a fast way to get the necklace a specific number belongs to.
+    All it does is rotate it N times and return the min.
+    """
+    rot, _ = make_rot(N)
+
+    @numba.njit("u4(u4)")
+    def min(x):
+        m = x
+        for _ in range(N):
+            x = rot(x)
+            if x < m:
+                m = x
+        return m
+
+    return min
+
+
+#%%
 
 if __name__ == "__main__":
+    pass
 
-    import numpy as np
+    # from time import monotonic
+    # for N in range(4, 33):
+    #     st = monotonic()
+    #     group = make_group(N)
+    #     np.save(f"data/group-{N}.npy", group)
+    #     necks = np.unique(group)
+    #     np.save(f"data/necks-{N}.npy", necks)
+    #     et = monotonic()
+    #     print(f"{N=:<2d}:{et - st:11.3f}s")
 
-    N = 8
-    necklaces = make_necklaces(N)
+    #%%
 
-    assert np.all(dict2arr(arr2dict(necklaces)) == necklaces)
+    # import argparse
+    #
+    # parser = argparse.ArgumentParser(description="Process some integers.")
+    # parser.add_argument(
+    #     "N",
+    #     type=int,
+    #     help="length of the binary necklaces",
+    # )
+    # parser.add_argument(
+    #     "--out",
+    #     type=str,
+    #     default="necklaces.pkl",
+    #     help="the file where to save the neckalces",
+    # )
+    #
+    # args = parser.parse_args()
+    # print(args)
+    # with open(args.out, "wb") as f:
+    #     pickle.dump({"N": args.N, "group": make_group(args.N)}, f)
+    # print(f"Saved to {args.out}")

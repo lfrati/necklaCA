@@ -21,11 +21,11 @@ def contains(container, contained):
 
 
 def test_oeis():
-    from data import make_necklaces_tuple, make_necklaces, arr2dict
+    from data import make_group_tuple, make_group, arr2dict
 
     sizes = []
     for i in range(4, 18):
-        groups = make_necklaces_tuple(i)
+        groups = make_group_tuple(i)
         sizes.append(len(groups))
 
     oeis = get_oeis("A000031")
@@ -34,7 +34,7 @@ def test_oeis():
 
     sizes = []
     for i in range(4, 22):
-        arr = make_necklaces(i)
+        arr = make_group(i)
         groups = arr2dict(arr)
         sizes.append(len(groups))
 
@@ -42,11 +42,11 @@ def test_oeis():
 
 
 def test_arr_dict():
-    from data import make_necklaces, dict2arr, arr2dict
+    from data import make_group, dict2arr, arr2dict
 
     N = 8
-    necklaces = make_necklaces(N)
-    assert np.all(dict2arr(arr2dict(necklaces)) == necklaces)
+    group = make_group(N)
+    assert np.all(dict2arr(arr2dict(group)) == group)
 
 
 def test_rots():
@@ -74,3 +74,14 @@ def test_rots():
         x = vrot(x)
 
     assert np.all(x == start)
+
+
+def test_get_neck():
+    from data import make_group, get_neck
+
+    N = 14
+    n = get_neck(N)
+    group = make_group(N)
+
+    for i, v in enumerate(group):
+        assert n(i) == v
