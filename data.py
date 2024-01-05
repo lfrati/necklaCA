@@ -36,20 +36,22 @@ def save_with_tag(path, **kwargs):
         {short_git_hash}-{__file__}-{lineno}
     """
     if is_interactive():
-        print("Running in interactive mode. Skipping...")
+        print("Running in interactive mode. Showing plot instead of saving...")
+        plt.show()
         return
     head = get_head_name()
     commit = Path(f".git/refs/heads/{head}").read_text().strip()[:8]
-    line = inspect.currentframe().f_back.f_lineno  # f_back = the caller, not us
-    name = Path(__file__).stem
+    caller = inspect.currentframe().f_back
+    line = caller.f_lineno  # f_back = the caller, not us
+    file = Path(inspect.getfile(caller)).name
 
     # if there are multiple folders insert the tag right before
     # the filename e.g. ./figures/plot.pdf -> ./figures/TAG_plot.pdf
     path = Path(path)
     parent = path.parent
-    file = path.name
+    name = path.name
 
-    tag = f"{parent}/{commit}-{name}:{line}_{file}"
+    tag = f"{parent}/{commit}:{file}:{line}-{name}"
     if FORCE_SAVE or not Path(tag).exists():
         plt.savefig(tag, **kwargs)
         print(f"Saved {tag}")
