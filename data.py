@@ -1,7 +1,61 @@
+import inspect
 from itertools import product
+import os
+from pathlib import Path
+import re
 
+import matplotlib.pyplot as plt
 import numba
 import numpy as np
+
+
+def getenv(key: str, default=0):
+    return type(default)(os.getenv(key, default))
+
+
+FORCE_SAVE = getenv("FORCE_SAVE", 0)
+
+
+def get_head_name():
+    head = Path(".git/HEAD").read_text().strip()
+    match = re.match("ref:\s+refs/heads/(\w+)", head)
+    if match is not None:
+        return match.groups()[0]
+    raise RuntimeError(f"Couldn't parse .git/HEAD: {head}")
+
+
+def is_interactive():
+    import __main__ as main
+
+    return not hasattr(main, "__file__")
+
+
+def save_with_tag(path, **kwargs):
+    """
+    Get a tag for the current line with format:
+        {short_git_hash}-{__file__}-{lineno}
+    """
+    if is_interactive():
+        print("Running in interactive mode. Skipping...")
+        return
+    head = get_head_name()
+    commit = Path(f".git/refs/heads/{head}").read_text().strip()[:8]
+    line = inspect.currentframe().f_back.f_lineno  # f_back = the caller, not us
+    name = Path(__file__).stem
+
+    # if there are multiple folders insert the tag right before
+    # the filename e.g. ./figures/plot.pdf -> ./figures/TAG_plot.pdf
+    path = Path(path)
+    parent = path.parent
+    file = path.name
+
+    tag = f"{parent}/{commit}-{name}:{line}_{file}"
+    if FORCE_SAVE or not Path(tag).exists():
+        plt.savefig(tag, **kwargs)
+        print(f"Saved {tag}")
+    else:
+        print(f"{tag} exists. Skipping...")
+
 
 """
 How do we represent all the neckaces? In the following we use 2 approaches arrays or dictionaries
