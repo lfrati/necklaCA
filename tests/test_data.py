@@ -1,6 +1,24 @@
 import numpy as np
 
 
+def test_int_bin():
+    from data import int2bin, bin2int
+
+    N = 8
+    v = 137
+    assert bin2int(int2bin(v, N)) == v
+
+
+def test_bin2int():
+    from itertools import product
+    from data import bin2int
+
+    N = 5
+    seqs = list(product([0, 1], repeat=N))
+    for i, seq in enumerate(seqs):
+        assert i == bin2int(seq)
+
+
 def get_oeis(seq):
     # TODO: is there a better api? this feel very brittle
     import requests
@@ -52,8 +70,7 @@ def test_arr_dict():
 def test_rots():
     # one full turn puts you back at the start
 
-    from data import make_rot
-    from utils import int2bin
+    from data import make_rot, int2bin
 
     N = 8
     rot, vrot = make_rot(N)

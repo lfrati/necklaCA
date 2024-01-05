@@ -82,20 +82,12 @@ def step_implicit(num, N, rule):
     return res
 
 
-#%%
-
-state = np.array([0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1])
-hist = multi_step(state, RULES[90], 12)
-
-#%%
-
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     N = 100
     state = np.zeros(N, dtype=np.uint8)
     state[N // 2] = 1
-
     rule = RULES[110]
     history = multi_step(state, rule, N)
     print(history)
@@ -106,3 +98,4 @@ if __name__ == "__main__":
     plt.axis("off")
     plt.tight_layout()
     plt.show()
+

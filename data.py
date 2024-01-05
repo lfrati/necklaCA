@@ -1,5 +1,4 @@
 from itertools import product
-import pickle
 
 import numba
 import numpy as np
@@ -19,7 +18,14 @@ In the  dict version:
 
 """
 
-# %%
+
+def bin2int(seq: tuple | str) -> int:
+    return int("".join(str(v) for v in seq), 2)
+
+
+def int2bin(x: int, N: int) -> str:
+    return f"{x:0{N}b}"
+
 
 """
 V1: rotating tuples
@@ -165,17 +171,16 @@ def get_neck(N):
 if __name__ == "__main__":
     pass
 
-    # from time import monotonic
-    # for N in range(4, 33):
-    #     st = monotonic()
-    #     group = make_group(N)
-    #     np.save(f"data/group-{N}.npy", group)
-    #     necks = np.unique(group)
-    #     np.save(f"data/necks-{N}.npy", necks)
-    #     et = monotonic()
-    #     print(f"{N=:<2d}:{et - st:11.3f}s")
+    from time import monotonic
 
-    #%%
+    for N in range(4, 33):
+        st = monotonic()
+        group = make_group(N)
+        # np.save(f"data/group-{N}.npy", group)
+        necks = np.unique(group)
+        np.save(f"data/necks-{N}.npy", necks)
+        et = monotonic()
+        print(f"{N=:<2d}:{et - st:11.3f}s")
 
     # import argparse
     #
