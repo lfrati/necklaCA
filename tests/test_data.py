@@ -1,8 +1,22 @@
+from itertools import product
+
 import numpy as np
+from tqdm import trange
+
+from data import (
+    _make_group,
+    arr2dict,
+    bin2int,
+    dict2arr,
+    get_neck,
+    int2bin,
+    make_group,
+    make_group_tuple,
+    make_rot,
+)
 
 
 def test_int_bin():
-    from data import int2bin, bin2int
 
     N = 8
     v = 137
@@ -10,8 +24,6 @@ def test_int_bin():
 
 
 def test_bin2int():
-    from itertools import product
-    from data import bin2int
 
     N = 5
     seqs = list(product([0, 1], repeat=N))
@@ -39,7 +51,6 @@ def contains(container, contained):
 
 
 def test_oeis():
-    from data import make_group_tuple, make_group, arr2dict
 
     sizes = []
     for i in range(4, 18):
@@ -60,7 +71,6 @@ def test_oeis():
 
 
 def test_arr_dict():
-    from data import make_group, dict2arr, arr2dict
 
     N = 8
     group = make_group(N)
@@ -69,8 +79,6 @@ def test_arr_dict():
 
 def test_rots():
     # one full turn puts you back at the start
-
-    from data import make_rot, int2bin
 
     N = 8
     rot, vrot = make_rot(N)
@@ -94,7 +102,6 @@ def test_rots():
 
 
 def test_get_neck():
-    from data import make_group, get_neck
 
     N = 14
     n = get_neck(N)
@@ -102,3 +109,25 @@ def test_get_neck():
 
     for i, v in enumerate(group):
         assert n(i) == v
+
+
+def test_make_group():
+    def validate(arr, rot, N):
+
+        d = arr2dict(arr)
+        for k, vals in d.items():
+            assert isinstance(vals, set)
+            assert k in vals
+            # how do I check I got all of them?
+            # pick one and rotate N times
+            # every rotation has to be in the group
+            # Note: this might do too many checks
+            candidate = next(iter(vals))
+            for _ in range(N):
+                candidate = rot(candidate)
+                assert candidate in vals, f"Error: {candidate} not in {vals}"
+
+    for N in trange(4, 10):
+        rot, vrot = make_rot(N)
+        necklaces = _make_group(vrot, N)
+        validate(necklaces, rot, N)

@@ -1,8 +1,9 @@
 import numpy as np
 
+from ca import RULES, multi_step, step, step_implicit, to_bits, to_int
+
 
 def test_implicit():
-    from ca import RULES, step_implicit, step, to_int, to_bits
 
     N = 5
     rule = RULES[90]
@@ -13,7 +14,6 @@ def test_implicit():
 
 
 def test_explicit():
-    from ca import RULES, multi_step
 
     rule = RULES[110]
     seed = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0])
