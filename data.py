@@ -36,7 +36,7 @@ def save_with_tag(path, **kwargs):
         {short_git_hash}-{__file__}-{lineno}
     """
     if is_interactive():
-        print("Running in interactive mode. Showing plot instead of saving...")
+        print(f"Running in interactive mode. Showing plot instead of saving to: {path}")
         plt.show()
         return
     head = get_head_name()
