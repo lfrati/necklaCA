@@ -57,6 +57,7 @@ def save_with_tag(path, **kwargs):
         print(f"Saved {tag}")
     else:
         print(f"{tag} exists. Skipping...")
+    plt.close()
 
 
 """
