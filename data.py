@@ -30,7 +30,7 @@ def is_interactive():
     return not hasattr(main, "__file__")
 
 
-def save_with_tag(path, **kwargs):
+def archive(path, tag=False, **kwargs):
     """
     Get a tag for the current line with format:
         {short_git_hash}-{__file__}-{lineno}
@@ -39,24 +39,29 @@ def save_with_tag(path, **kwargs):
         print(f"Running in interactive mode. Showing plot instead of saving to: {path}")
         plt.show()
         return
-    head = get_head_name()
-    commit = Path(f".git/refs/heads/{head}").read_text().strip()[:8]
-    caller = inspect.currentframe().f_back
-    line = caller.f_lineno  # f_back = the caller, not us
-    file = Path(inspect.getfile(caller)).name
 
-    # if there are multiple folders insert the tag right before
-    # the filename e.g. ./figures/plot.pdf -> ./figures/TAG_plot.pdf
-    path = Path(path)
-    parent = path.parent
-    name = path.name
+    filename = path
 
-    tag = f"{parent}/{commit}:{file}:{line}-{name}"
-    if FORCE_SAVE or not Path(tag).exists():
-        plt.savefig(tag, **kwargs)
-        print(f"Saved {tag}")
+    if tag:
+        head = get_head_name()
+        commit = Path(f".git/refs/heads/{head}").read_text().strip()[:8]
+        caller = inspect.currentframe().f_back
+        caller_line = caller.f_lineno  # f_back = the caller, not us
+        caller_file = Path(inspect.getfile(caller)).name
+
+        # if there are multiple folders insert the tag right before
+        # the filename e.g. ./figures/plot.pdf -> ./figures/TAG_plot.pdf
+        path = Path(path)
+        parent = path.parent
+        name = path.name
+        filename = f"{parent}/{commit}:{caller_file}:{caller_line}-{name}"
+
+
+    if FORCE_SAVE or not Path(filename).exists():
+        plt.savefig(filename, **kwargs)
+        print(f"Saved {filename}")
     else:
-        print(f"{tag} exists. Skipping...")
+        print(f"{filename} exists. Skipping...")
     plt.close()
 
 

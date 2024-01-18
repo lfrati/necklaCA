@@ -5,8 +5,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import trange
 
-from data import make_group, arr2dict, make_group, save_with_tag
+from data import make_group, arr2dict, make_group, archive
 
+
+plt.rcParams.update({"font.size": 16})
 
 #%%
 
@@ -48,7 +50,7 @@ plt.grid()
 plt.xlabel("Necklace rank (for each N : [0, #necklaces])")
 plt.ylabel("Necklace value (e.g. [0011, ..., 1100]  = 3)")
 plt.tight_layout()
-save_with_tag("figures/distribution_of_necklaces.pdf")
+archive("figures/distribution_of_necklaces.pdf")
 
 """
 What a nice regular shape, no wonder people propose recursive algorithms
@@ -114,7 +116,7 @@ ax.arrow(
 ax.set_xlabel("x")
 ax.set_ylabel("necklace(x)")
 plt.tight_layout()
-save_with_tag("figures/necklaces_foreach_x.png", dpi=300)
+archive("figures/necklaces_foreach_x.png", dpi=300)
 
 
 #%%
@@ -199,7 +201,7 @@ axs[0].set_ylabel("necklace(x)")
 plt.grid()
 plt.legend()
 plt.tight_layout()
-save_with_tag("figures/lines_of_necklaces.png", dpi=300)
+archive("figures/lines_of_necklaces.png", dpi=300)
 
 
 #%%
@@ -217,7 +219,7 @@ plt.tight_layout()
 plt.legend()
 plt.xlabel("x")
 plt.xlabel("Necklace(x)")
-save_with_tag("figures/consecutive_necklaces.pdf")
+archive("figures/consecutive_necklaces.pdf")
 
 """
 But do them? If I plot multiple runs in the same range (o.w. it grows exponentially)
@@ -237,7 +239,7 @@ plt.tight_layout()
 # plt.grid()
 plt.xlabel("x")
 plt.xlabel("Necklace(x)")
-save_with_tag("figures/consecutive_necklaces_same_range.pdf")
+archive("figures/consecutive_necklaces_same_range.pdf")
 
 # plt.figure(figsize=(10, 10))
 # for N in range(20, 10, -1):
@@ -301,7 +303,7 @@ plt.legend()
 plt.xlabel("x")
 plt.xlabel("Necklace(x)")
 plt.tight_layout()
-save_with_tag("figures/overlapping_necklaces.pdf")
+archive("figures/overlapping_necklaces.pdf")
 
 #%%
 
@@ -319,12 +321,13 @@ xs = np.array(xs)
 ys = np.array(ys)
 
 plt.plot(xs, (ys / 2**xs), ".-", label="$\\dfrac{Necklaces(N)}{2^N}$")
-plt.plot(xs, (1 / xs), "--", alpha=0.5, label="1/N")
+plt.plot(xs, (1 / xs), "--", alpha=0.7, label="1/N", color="red")
 plt.xlabel("N")
 plt.grid()
 plt.legend()
 plt.tight_layout()
-save_with_tag("figures/necklaces_scaling.pdf")
+archive("figures/necklaces_scaling.pdf")
+plt.show()
 
 # fig, ax = plt.subplots()
 # ax.set_yscale("log")
@@ -340,19 +343,21 @@ save_with_tag("figures/necklaces_scaling.pdf")
 #%%
 
 
-## I'm not sure what I was plotting but it looks familiar so I'll leave it here for now xD
-# N = 14
-# ys = []
-# for N in range(4, 22):
-#     group = make_group(N)
-#     group = arr2dict(group)
-#     sizes = np.array([len(val) for val in group.values()])
-#     ratio = np.sum(sizes < N) / len(sizes)
-#     print(N, ratio)
-#     ys.append(ratio)
-#
-# plt.figure(figsize=(12, 8))
-# plt.plot(ys, ".-")
-# plt.tight_layout()
-# plt.grid()
-# plt.show()
+ys = []
+xs = np.arange(4, 24)
+for N in xs:
+    group = make_group(N)
+    group = arr2dict(group)
+    sizes = np.array([len(val) for val in group.values()])
+    ratio = np.sum(sizes >= N) / len(sizes)
+    print(N, ratio)
+    ys.append(ratio)
+
+# plt.figure(figsize=(8, 4))
+plt.plot(xs, ys, ".-", label="fraction of aperiodic\nnecklaces of length N")
+plt.grid()
+plt.legend(loc="center right")
+plt.text(xs[-1] - 0.5, ys[-1] - 0.05, f"{ys[-1]:.5f}", fontsize=12)
+plt.xlabel("N")
+plt.tight_layout()
+archive("figures/aperiodic_necklaces.pdf")

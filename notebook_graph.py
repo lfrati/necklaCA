@@ -5,7 +5,7 @@ import networkx as nx
 import numpy as np
 
 from ca import RULES, multi_step, step_implicit, to_int
-from data import make_group, save_with_tag
+from data import make_group, archive
 
 # import numba
 # @numba.njit("u8[:,:](u4[:], u8, u1[:])", parallel=True)
@@ -16,6 +16,8 @@ from data import make_group, save_with_tag
 #     for i in numba.prange(M):
 #         edges[i, 1] = step_implicit(edges[i, 0], N, rule)
 #     return edges
+
+plt.rcParams.update({"font.size": 16})
 
 np.random.seed(4)
 
@@ -79,8 +81,10 @@ def plot_grid(N, layout="kamada_kawai", numbers=True):
                 transform=ax.transAxes,
             )
     plt.tight_layout()
-    save_with_tag(f"figures/{N}-{layout}-all.pdf")
+    archive(f"figures/{N}-{layout}-all.pdf")
 
+
+#%%
 
 # import pickle
 # with open("necklaces.pkl", "rb") as f:
@@ -131,7 +135,7 @@ def show_sequence_and_graph(rule, rule_num, layout):
     node_size = [40 if node in nodes else 10 for node in G.nodes]
 
     axs[0].pcolormesh(history, cmap="binary", edgecolors="gray")
-    axs[0].set_title(f"rule={rule_num} N={N}\nseq={seq}")
+    axs[0].set_title(f"Rule={rule_num} N={N}")
     axs[0].axis("off")
 
     # axs[0].set_xticks(seq)
@@ -145,12 +149,12 @@ def show_sequence_and_graph(rule, rule_num, layout):
         node_size=node_size,
         **options,
     )
-    axs[1].set_title(f"Necklaces graph for rule {rule_num}, N={N}, layout={layout}")
+    axs[1].set_title(f"Necklaces:\n{seq}")
 
     plt.tight_layout()
     name = f"figures/{rule_num=}-{layout}-{N}.pdf"
     print(name)
-    save_with_tag(name)
+    archive(name)
 
 
 N = 11
@@ -227,10 +231,99 @@ def show_rule_and_necklace(rule, rule_num, N):
     plt.title(f"Rule: {rule_num}")
     plt.tight_layout()
     name = f"figures/{rule_num=}-rule_to_necklace.pdf"
-    save_with_tag(name)
+    archive(name)
 
 
 N = 6
 for rule_num in [0, 2, 90, 110]:
     rule = RULES[rule_num]
     show_rule_and_necklace(rule, rule_num, N)
+
+#%%
+
+from tqdm import trange
+
+
+graphs = []
+for N in trange(16):
+    N = N + 1
+    group = make_group(N)
+    necklaces = np.unique(group)
+    edges = make_edges_tuples(necklaces, N, RULES[90], group)
+    # no digraph because arrowheads are obnoxious
+    G = nx.Graph()
+    # G = nx.DiGraph()
+    G.add_edges_from(edges)
+    # show largest connected component only
+    G = G.subgraph(max(nx.connected_components(G), key=len)).copy()
+    # G = G.subgraph(max(nx.strongly_connected_components(G), key=len)).copy()
+    # G = G.subgraph(max(nx.weakly_connected_components(G), key=len)).copy()
+    graphs.append(G)
+
+#%%
+
+# layout = "kamada_kawai"
+layout = "planar"
+_, axs = plt.subplots(nrows=4, ncols=4, figsize=(10, 10))
+
+for N, ax in tqdm(enumerate(axs.flatten())):
+    G = graphs[N]
+    pos = layouts[layout](G)
+
+    options = {
+        "node_color": "black",
+        "node_size": 1,
+        "width": 1,
+        "alpha": 0.7,
+        "arrowsize": 6,
+    }
+    nx.draw_networkx(G, pos=pos, with_labels=False, ax=ax, **options)
+    ax.text(
+        0.95,
+        0.95,
+        f"{N+1}",
+        fontsize=10,
+        horizontalalignment="center",
+        verticalalignment="center",
+        transform=ax.transAxes,
+    )
+    ax.axis("off")
+plt.tight_layout()
+# archive(f"figures/rule_90_progression.pdf")
+
+plt.show()
+
+#%%
+
+opts = ["circular", "planar", "random", "spectral", "spring", "shell"]
+
+for layout in opts:
+    _, ax = plt.subplots(figsize=(10, 10))
+
+    N = 15
+    G = graphs[N]
+    pos = layouts[layout](G)
+
+    options = {
+        "node_color": "black",
+        "node_size": 1,
+        "width": 1,
+        "alpha": 0.7,
+        "arrowsize": 6,
+    }
+    nx.draw_networkx(G, pos=pos, with_labels=False, ax=ax, **options)
+    ax.text(
+        0.95,
+        0.95,
+        f"{N+1}",
+        fontsize=10,
+        horizontalalignment="center",
+        verticalalignment="center",
+        transform=ax.transAxes,
+    )
+    ax.axis("off")
+    plt.title(layout)
+    plt.tight_layout()
+    # archive(f"figures/rule_90_progression.pdf")
+
+    plt.show()
