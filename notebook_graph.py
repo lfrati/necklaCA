@@ -186,6 +186,64 @@ def line(x0, y0, x1, y1, ax=None, **kwargs):
         ax.plot([x0, x1], [y0, y1], **kwargs)
 
 
+def draw_round_necklace(N, rule, ax):
+    group = make_group(N)
+    # necklaces = np.unique(group)
+    D = arr2dict(group)
+
+    r = 10
+    M = len(D)
+    state2coords = {}
+    circle_coords = []
+    for i, states in enumerate(D.values()):
+        progress = i / M
+        x, y = (r * sin(progress * pi * 2), r * cos(progress * pi * 2))
+        circle_coords.append((x, y))
+        for state in states:
+            state2coords[state] = (x, y)
+
+    f = partial(step_implicit, N=N, rule=rule)
+    edges = [(v, f(v)) for v in range(len(group))]
+
+    for edge in edges:
+        _from, _to = edge
+        line(
+            *state2coords[_from],
+            *state2coords[_to],
+            ax=ax,
+            color="red",
+            lw=0.5,
+        )
+
+    for (x, y) in circle_coords:
+        ax.add_patch(
+            Circle(
+                (x, y),
+                1,
+                facecolor="white",
+                edgecolor="black",
+                lw=0.5,
+                zorder=1000,
+            )
+        )
+
+    ax.set_xlim(-1.15 * r, 1.15 * r)
+    ax.set_ylim(-1.15 * r, 1.15 * r)
+    ax.set_axis_off()
+
+    # ## show the box but no ticks
+    # for tick in ax.xaxis.get_major_ticks():
+    #     tick.tick1line.set_visible(False)
+    #     tick.tick2line.set_visible(False)
+    #     tick.label1.set_visible(False)
+    #     tick.label2.set_visible(False)
+    # for tick in ax.yaxis.get_major_ticks():
+    #     tick.tick1line.set_visible(False)
+    #     tick.tick2line.set_visible(False)
+    #     tick.label1.set_visible(False)
+    #     tick.label2.set_visible(False)
+
+
 def show_rule_and_necklace(rule, rule_num, N):
 
     group = make_group(N)
@@ -229,19 +287,33 @@ def show_rule_and_necklace(rule, rule_num, N):
             # lw=0.5,
         )
 
-    plt.xlim(-1.2 * r, 1.3 * r)
-    plt.ylim(-1.3 * r, 1.2 * r)
-    plt.axis("off")
+    ax.set_xlim(-1.2 * r, 1.3 * r)
+    ax.set_ylim(-1.3 * r, 1.2 * r)
+    ax.set_axis_off()
+
+    axins = ax.inset_axes(
+        [0.85, 0.85, 0.15, 0.15],
+        # xlim=(0, subset),
+        # ylim=(0, subset),
+        # xticklabels=[],
+        # yticklabels=[],
+    )
+
+    draw_round_necklace(N, rule, axins)
+
     # plt.title(f"Rule: {rule_num}")
     plt.tight_layout()
     name = f"figures/{rule_num=}-rule_to_necklace.pdf"
     archive(name)
+    # plt.savefig(name)
+    # plt.show()
 
 
 N = 6
 for rule_num in [0, 2, 90, 110]:
     rule = RULES[rule_num]
     show_rule_and_necklace(rule, rule_num, N)
+
 
 #%%
 
