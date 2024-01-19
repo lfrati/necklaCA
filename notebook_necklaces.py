@@ -327,7 +327,6 @@ plt.grid()
 plt.legend()
 plt.tight_layout()
 archive("figures/necklaces_scaling.pdf")
-plt.show()
 
 # fig, ax = plt.subplots()
 # ax.set_yscale("log")

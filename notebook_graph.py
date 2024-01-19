@@ -1,11 +1,16 @@
 from functools import partial
+from math import cos, pi, sin
 
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Circle, Rectangle
 import matplotlib.pyplot as plt
 import networkx as nx
+from networkx.drawing.nx_agraph import graphviz_layout
 import numpy as np
+from tqdm import trange, tqdm
 
 from ca import RULES, multi_step, step_implicit, to_int
-from data import make_group, archive
+from data import archive, make_group, arr2dict, int2bin
 
 # import numba
 # @numba.njit("u8[:,:](u4[:], u8, u1[:])", parallel=True)
@@ -30,8 +35,6 @@ layouts = {
     "spring": nx.spring_layout,
     "shell": nx.shell_layout,
 }
-
-from tqdm import tqdm
 
 
 def make_edges_tuples(necklaces, N, rule, group):
@@ -165,12 +168,6 @@ for rule_num in [30, 90, 110]:
 
 #%%
 
-from matplotlib.patches import Rectangle, Circle
-from matplotlib.collections import PatchCollection
-
-from math import cos, sin, pi
-from data import arr2dict, int2bin
-
 
 def state2coll(pos, state):
     x, y = pos
@@ -223,12 +220,19 @@ def show_rule_and_necklace(rule, rule_num, N):
 
     for edge in edges:
         _from, _to = edge
-        line(*state2coords[_from], *state2coords[_to], ax=ax, color="red", lw=0.5)
+        line(
+            *state2coords[_from],
+            *state2coords[_to],
+            ax=ax,
+            color="red",
+            alpha=0.5,
+            # lw=0.5,
+        )
 
     plt.xlim(-1.2 * r, 1.3 * r)
     plt.ylim(-1.3 * r, 1.2 * r)
     plt.axis("off")
-    plt.title(f"Rule: {rule_num}")
+    # plt.title(f"Rule: {rule_num}")
     plt.tight_layout()
     name = f"figures/{rule_num=}-rule_to_necklace.pdf"
     archive(name)
@@ -241,89 +245,81 @@ for rule_num in [0, 2, 90, 110]:
 
 #%%
 
-from tqdm import trange
-
 
 graphs = []
-for N in trange(16):
-    N = N + 1
+xs = np.arange(7, 17)
+for N in tqdm(xs):
     group = make_group(N)
     necklaces = np.unique(group)
     edges = make_edges_tuples(necklaces, N, RULES[90], group)
     # no digraph because arrowheads are obnoxious
-    G = nx.Graph()
-    # G = nx.DiGraph()
+    # G = nx.Graph()
+    G = nx.DiGraph()
     G.add_edges_from(edges)
     # show largest connected component only
-    G = G.subgraph(max(nx.connected_components(G), key=len)).copy()
+    # G = G.subgraph(max(nx.connected_components(G), key=len)).copy()
     # G = G.subgraph(max(nx.strongly_connected_components(G), key=len)).copy()
-    # G = G.subgraph(max(nx.weakly_connected_components(G), key=len)).copy()
+    G = G.subgraph(max(nx.weakly_connected_components(G), key=len)).copy()
     graphs.append(G)
 
 #%%
 
-# layout = "kamada_kawai"
-layout = "planar"
-_, axs = plt.subplots(nrows=4, ncols=4, figsize=(10, 10))
 
-for N, ax in tqdm(enumerate(axs.flatten())):
-    G = graphs[N]
-    pos = layouts[layout](G)
+import matplotlib.pyplot as plt
+
+from matplotlib.gridspec import GridSpec
+
+
+def format_axes(fig):
+    for _, ax in enumerate(fig.axes):
+        # ax.text(0.5, 0.5, "ax%d" % (i + 1), va="center", ha="center")
+        ax.tick_params(labelbottom=False, labelleft=False)
+        ax.set_aspect("equal")
+
+
+fig = plt.figure(figsize=(10, 10), layout="constrained")
+
+gs = GridSpec(5, 5, figure=fig)
+# identical to ax1 = plt.subplot(gs.new_subplotspec((0, 0), colspan=3))
+axs = []
+for i in range(5):
+    axs.append(fig.add_subplot(gs[0, i]))
+for i in range(1, 5):
+    axs.append(fig.add_subplot(gs[i, 0]))
+axs.append(fig.add_subplot(gs[1:, 1:]))
+
+
+for i, N in tqdm(enumerate(xs)):
+    ax = fig.axes[i]
+    G = graphs[i]
+    # pos = layouts[layout](G)
+    # pos = graphviz_layout(G, prog="sfdp", args='-Gbeautify=true')
+    pos = graphviz_layout(G, prog="sfdp")
 
     options = {
-        "node_color": "black",
-        "node_size": 1,
+        "node_color": "gray",
+        "node_size": 5,
         "width": 1,
         "alpha": 0.7,
-        "arrowsize": 6,
+        "arrowsize": 4,
     }
     nx.draw_networkx(G, pos=pos, with_labels=False, ax=ax, **options)
     ax.text(
         0.95,
         0.95,
-        f"{N+1}",
+        f"{N}",
         fontsize=10,
         horizontalalignment="center",
         verticalalignment="center",
+        color="red" if N in [8, 16] else "black",
+        weight="bold" if N in [8, 16] else "normal",
         transform=ax.transAxes,
     )
     ax.axis("off")
+
+# archive(f"figures/rule_90_progression.pdf")
+format_axes(fig)
 plt.tight_layout()
 # archive(f"figures/rule_90_progression.pdf")
-
-plt.show()
-
-#%%
-
-opts = ["circular", "planar", "random", "spectral", "spring", "shell"]
-
-for layout in opts:
-    _, ax = plt.subplots(figsize=(10, 10))
-
-    N = 15
-    G = graphs[N]
-    pos = layouts[layout](G)
-
-    options = {
-        "node_color": "black",
-        "node_size": 1,
-        "width": 1,
-        "alpha": 0.7,
-        "arrowsize": 6,
-    }
-    nx.draw_networkx(G, pos=pos, with_labels=False, ax=ax, **options)
-    ax.text(
-        0.95,
-        0.95,
-        f"{N+1}",
-        fontsize=10,
-        horizontalalignment="center",
-        verticalalignment="center",
-        transform=ax.transAxes,
-    )
-    ax.axis("off")
-    plt.title(layout)
-    plt.tight_layout()
-    # archive(f"figures/rule_90_progression.pdf")
-
-    plt.show()
+plt.savefig(f"figures/rule_90_progression.png")
+# plt.show()
