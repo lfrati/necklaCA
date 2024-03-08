@@ -34,6 +34,7 @@ layouts = {
     "spectral": nx.spectral_layout,
     "spring": nx.spring_layout,
     "shell": nx.shell_layout,
+    "sfdp": lambda G: graphviz_layout(G, prog="sfdp"),
 }
 
 
@@ -47,7 +48,7 @@ def plot_grid(N, layout="kamada_kawai", numbers=True):
     necklaces = np.unique(group)
 
     _, axs = plt.subplots(nrows=16, ncols=16, figsize=(20, 20))
-    for i, ax in tqdm(enumerate(axs.flatten())):
+    for i, ax in tqdm(enumerate(axs.flatten()), total=256):
 
         edges = make_edges_tuples(necklaces, N, RULES[i], group)
 
@@ -64,7 +65,7 @@ def plot_grid(N, layout="kamada_kawai", numbers=True):
         pos = layouts[layout](G)
 
         options = {
-            "node_color": "black",
+            "node_color": "gray",
             "node_size": 1,
             "width": 1,
             "alpha": 0.7,
@@ -134,7 +135,7 @@ def show_sequence_and_graph(rule, rule_num, layout):
 
     seq = [group[to_int(state)] for state in history]
     nodes = set(seq)
-    node_color = ["red" if node in nodes else "black" for node in G.nodes]
+    node_color = ["red" if node in nodes else "gray" for node in G.nodes]
     node_size = [40 if node in nodes else 10 for node in G.nodes]
 
     axs[0].pcolormesh(history, cmap="binary", edgecolors="gray")
@@ -152,7 +153,7 @@ def show_sequence_and_graph(rule, rule_num, layout):
         node_size=node_size,
         **options,
     )
-    axs[1].set_title(f"Necklaces:\n{seq}")
+    axs[1].set_title(f"{seq}")
 
     plt.tight_layout()
     name = f"figures/{rule_num=}-{layout}-{N}.pdf"
@@ -160,11 +161,107 @@ def show_sequence_and_graph(rule, rule_num, layout):
     archive(name)
 
 
+np.random.seed(1338)
+
 N = 11
-layout = "kamada_kawai"
+# layout = "kamada_kawai"
+layout = "sfdp"
 for rule_num in [30, 90, 110]:
     rule = RULES[rule_num]
     show_sequence_and_graph(rule, rule_num, layout)
+
+#%%
+
+import matplotlib.patches as patches
+
+
+def show_sequence_and_graph_loop(rule, rule_num, layout):
+
+    group = make_group(N)
+    necklaces = np.unique(group)
+
+    edges = make_edges_tuples(necklaces, N, rule, group)
+
+    # no digraph because arrowheads are obnoxious
+    # G = nx.Graph()
+    G = nx.DiGraph()
+    G.add_edges_from(edges)
+
+    # show largest connected component only
+    # G = G.subgraph(max(nx.connected_components(G), key=len)).copy()
+    # G = G.subgraph(max(nx.strongly_connected_components(G), key=len)).copy()
+    # G = G.subgraph(max(nx.weakly_connected_components(G), key=len)).copy()
+
+    pos = layouts[layout](G)
+
+    options = {
+        "width": 1,
+        # "alpha": 0.7,
+        "arrowsize": 4,
+    }
+
+    _, axs = plt.subplots(ncols=2, figsize=(16, 10))
+
+    state = np.random.randint(2, size=N, dtype=np.uint8)
+    history = multi_step(state, rule, N)
+
+    seq = [group[to_int(state)] for state in history]
+    nodes = set(seq)
+    node_color = ["red" if node in nodes else "black" for node in G.nodes]
+    node_size = [40 if node in nodes else 10 for node in G.nodes]
+
+    print(history.shape)
+
+    axs[0].pcolormesh(np.flipud(history), cmap="binary", edgecolors="gray")
+    axs[0].set_title(f"Rule={rule_num} N={N}")
+    axs[0].axis("off")
+
+    from collections import Counter
+
+    duplicates = [key for key, val in Counter(seq).items() if val > 1]
+    if len(duplicates) > 0:
+        duplicate = duplicates[0]
+        (positions,) = np.where(seq == duplicate)
+        for x in positions:
+            border = 0.01
+            # Create a Rectangle patch
+            rect = patches.Rectangle(
+                (border, N - x + border),
+                N - border * 2,
+                1,
+                linewidth=2,
+                edgecolor="r",
+                facecolor=(1.0, 0.0, 0.0, 0.1),
+            )
+            # Add the patch to the Axes
+            axs[0].add_patch(rect)
+
+    # axs[0].set_xticks(seq)
+
+    nx.draw_networkx(
+        G,
+        pos=pos,
+        with_labels=False,
+        ax=axs[1],
+        node_color=node_color,
+        node_size=node_size,
+        **options,
+    )
+    axs[1].set_title(f"{seq}")
+
+    plt.tight_layout()
+    name = f"figures/{rule_num=}-{layout}-{N}_loop.pdf"
+    print(name)
+    archive(name)
+
+
+np.random.seed(6)
+N = 11
+layout = "sfdp"
+# rule_num = np.random.randint(256)
+rule_num = 111
+rule = RULES[rule_num]
+show_sequence_and_graph_loop(rule, rule_num, layout)
 
 #%%
 
@@ -394,4 +491,45 @@ format_axes(fig)
 plt.tight_layout()
 # archive(f"figures/rule_90_progression.pdf")
 plt.savefig(f"figures/rule_90_progression.png")
+# plt.show()
+
+#%%
+
+from numpy.lib.stride_tricks import sliding_window_view
+from ca import RULES, BASE
+
+
+def step(state, rule, mode="wrap"):
+    s = np.pad(state, (1, 1), mode)
+    s = sliding_window_view(s, 3)
+    s = (s * BASE).sum(axis=1)
+    return rule[s]
+
+
+def multi_step(state, rule, L, mode="wrap"):
+    history = np.empty((L + 1, state.shape[0]), dtype=np.uint8)
+    history[0] = state
+
+    for i in range(1, L + 1):
+        state = step(state, rule, mode)
+        history[i] = state
+
+    return history
+
+
+L = 64
+rule_num = 30
+fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
+state = np.random.randint(2, size=L)
+hist = multi_step(state, RULES[rule_num], L, "constant")
+axs[0].imshow(hist, interpolation="nearest", cmap="gray")
+axs[0].set_title("constant")
+axs[0].set_axis_off()
+hist = multi_step(state, RULES[rule_num], L, "wrap")
+axs[1].imshow(hist, interpolation="nearest", cmap="gray")
+axs[1].set_title("wrap")
+axs[1].set_axis_off()
+plt.tight_layout()
+archive("figures/constant_vs_wrap.png")
+# plt.savefig("figures/constant_vs_wrap.png")
 # plt.show()

@@ -13,7 +13,7 @@ def getenv(key: str, default=0):
     return type(default)(os.getenv(key, default))
 
 
-FORCE_SAVE = getenv("FORCE_SAVE", 0)
+FORCE = getenv("FORCE", 0)
 
 
 def get_head_name():
@@ -30,7 +30,7 @@ def is_interactive():
     return not hasattr(main, "__file__")
 
 
-def archive(path, tag=False, **kwargs):
+def archive(path, tag=False, force=False, **kwargs):
     """
     Get a tag for the current line with format:
         {short_git_hash}-{__file__}-{lineno}
@@ -57,7 +57,7 @@ def archive(path, tag=False, **kwargs):
         filename = f"{parent}/{commit}:{caller_file}:{caller_line}-{name}"
 
 
-    if FORCE_SAVE or not Path(filename).exists():
+    if force or FORCE or not Path(filename).exists():
         plt.savefig(filename, **kwargs)
         print(f"Saved {filename}")
     else:
