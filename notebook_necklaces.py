@@ -12,6 +12,47 @@ plt.rcParams.update({"font.size": 16})
 
 #%%
 
+from numpy.lib.stride_tricks import sliding_window_view
+from ca import RULES, BASE
+
+
+def step(state, rule, mode="wrap"):
+    s = np.pad(state, (1, 1), mode)
+    s = sliding_window_view(s, 3)
+    s = (s * BASE).sum(axis=1)
+    return rule[s]
+
+
+def multi_step(state, rule, L, mode="wrap"):
+    history = np.empty((L + 1, state.shape[0]), dtype=np.uint8)
+    history[0] = state
+
+    for i in range(1, L + 1):
+        state = step(state, rule, mode)
+        history[i] = state
+
+    return history
+
+
+L = 64
+rule_num = 30
+fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
+state = np.random.randint(2, size=L)
+hist = multi_step(state, RULES[rule_num], L, "constant")
+axs[0].imshow(hist, interpolation="nearest", cmap="gray")
+axs[0].set_title("constant")
+axs[0].set_axis_off()
+hist = multi_step(state, RULES[rule_num], L, "wrap")
+axs[1].imshow(hist, interpolation="nearest", cmap="gray")
+axs[1].set_title("wrap")
+axs[1].set_axis_off()
+plt.tight_layout()
+archive("figures/constant_vs_wrap.png")
+# plt.savefig("figures/constant_vs_wrap.png")
+# plt.show()
+
+#%%
+
 
 # def show(necklace, N):
 #     D = {}
@@ -258,29 +299,115 @@ I can quantify how much neckalces N are contained in necklaces N + 1 by checking
 among the first 2**N values of necklaces N+1 how many match exactly
 """
 
-print("    N |    Size | Head overlap | Tot. overlap")
+print("    N |    Size | Tot. overlap")
 print("---------------------------------------------")
-for N in range(3, 17):
+for N in range(4, 20):
 
     neck_N = make_group(N)
     neck_Nplus = make_group(N + 1)
 
     # range of values that N and N + 1 share
     assert neck_N.size == 2**N, f"{neck_N.size} != {2**N}"
+    assert neck_Nplus.size == 2 ** (N + 1), f"{neck_Nplus.size} != {2**N}"
     shared_range = neck_Nplus[: neck_N.size]
 
     matching = neck_N == shared_range
+    print(f"{N:>5} | {neck_N.size:>7} | {matching.sum()/neck_N.size * 100:<.2f}%")
 
-    divergence_point = np.argmin(matching)
-    assert all(matching[:divergence_point])
 
+#%%
+
+"""
+Necklaces of len N and N+1 overlap on the first  2 ** int(np.floor(N / 2) + 1)) elements
+
+This is influenced by the number of zeros left and right to the left-most 1
+"""
+
+
+def int_to_binary(n, digits):
+    # Convert integer to binary string, removing the '0b' prefix
+    binary_str = bin(n)[2:]
+
+    # Pad with leading zeros if necessary to achieve the desired length
+    if len(binary_str) < digits:
+        binary_str = binary_str.rjust(digits, "0")
+    elif len(binary_str) > digits:
+        raise ValueError("The number exceeds the length provided by digits")
+
+    return binary_str
+
+
+N = 20
+for N in range(3, 16):
+    neck_N = make_group(N)
+    neck_Nplus = make_group(N + 1)
+    shared_range = neck_Nplus[: neck_N.size]
+    # matching = neck_N == shared_range
+    # print(np.all(neck_N <= shared_range))
+    # different = neck_N != shared_range
+    different = np.where(neck_N != shared_range)
+    divergence = np.min(different)
+    m = 0
+    print(f"N:{N}, divergence point={divergence}", 2 ** int(np.floor(N / 2) + 1))
     print(
-        f"{N:>5} | {neck_N.size:>7} | {divergence_point/neck_N.size * 100:11.2f}% | {matching.sum()/neck_N.size * 100:<.2f}%"
+        f"{int_to_binary(divergence-m, N):>20}",
+        f"{int_to_binary(neck_N[divergence-m], N):>20}",
+        neck_N[divergence - m],
+    )
+    print(
+        f"{int_to_binary(divergence-m, N+1):>20}",
+        f"{int_to_binary(neck_Nplus[divergence-m], N+1):>20}",
+        neck_Nplus[divergence - m],
     )
 
 
 #%%
 
+
+x = np.arange(4, 30)
+y = np.array(
+    [
+        81.25,
+        65.62,
+        64.06,
+        52.34,
+        50.00,
+        44.53,
+        41.80,
+        38.04,
+        36.40,
+        33.73,
+        32.17,
+        30.45,
+        29.10,
+        27.73,
+        26.64,
+        25.55,
+        24.61,
+        23.72,
+        22.91,
+        22.15,
+        21.46,
+        20.81,
+        20.21,
+        19.64,
+        19.10,
+        18.60,
+    ]
+)
+
+
+# Plotting
+plt.plot(x, y / 100, ".-", label="Overlap between necklaces of length N and N+1")
+plt.xlabel("N")
+plt.ylabel("Overlap")
+plt.legend()
+plt.grid()
+plt.tight_layout()
+archive("figures/supplementary_scaling_overlap.pdf")
+plt.show()
+
+#%%
 
 N = 10
 neck_N = make_group(N).astype(np.int64)
