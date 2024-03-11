@@ -398,14 +398,13 @@ y = np.array(
 
 
 # Plotting
-plt.plot(x, y / 100, ".-", label="Overlap between necklaces of length N and N+1")
+plt.plot(x, y / 100, ".-", label="Overlap between necklaces\n of length N and N+1")
 plt.xlabel("N")
 plt.ylabel("Overlap")
 plt.legend()
 plt.grid()
 plt.tight_layout()
 archive("figures/supplementary_scaling_overlap.pdf")
-plt.show()
 
 #%%
 

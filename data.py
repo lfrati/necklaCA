@@ -57,7 +57,7 @@ def archive(path, tag=False, force=False, **kwargs):
         filename = f"{parent}/{commit}:{caller_file}:{caller_line}-{name}"
 
 
-    if force or FORCE or not Path(filename).exists():
+    if force or FORCE:
         plt.savefig(filename, **kwargs)
         print(f"Saved {filename}")
     else:

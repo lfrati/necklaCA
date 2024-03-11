@@ -414,6 +414,9 @@ for rule_num in [0, 2, 90, 110]:
 
 #%%
 
+"""
+Rule 90 progression
+"""
 
 graphs = []
 xs = np.arange(7, 17)
@@ -490,46 +493,6 @@ for i, N in tqdm(enumerate(xs)):
 format_axes(fig)
 plt.tight_layout()
 # archive(f"figures/rule_90_progression.pdf")
-plt.savefig(f"figures/rule_90_progression.png")
-# plt.show()
+archive(f"figures/rule_90_progression.png")
 
-#%%
-
-from numpy.lib.stride_tricks import sliding_window_view
-from ca import RULES, BASE
-
-
-def step(state, rule, mode="wrap"):
-    s = np.pad(state, (1, 1), mode)
-    s = sliding_window_view(s, 3)
-    s = (s * BASE).sum(axis=1)
-    return rule[s]
-
-
-def multi_step(state, rule, L, mode="wrap"):
-    history = np.empty((L + 1, state.shape[0]), dtype=np.uint8)
-    history[0] = state
-
-    for i in range(1, L + 1):
-        state = step(state, rule, mode)
-        history[i] = state
-
-    return history
-
-
-L = 64
-rule_num = 30
-fig, axs = plt.subplots(ncols=2, figsize=(8, 4))
-state = np.random.randint(2, size=L)
-hist = multi_step(state, RULES[rule_num], L, "constant")
-axs[0].imshow(hist, interpolation="nearest", cmap="gray")
-axs[0].set_title("constant")
-axs[0].set_axis_off()
-hist = multi_step(state, RULES[rule_num], L, "wrap")
-axs[1].imshow(hist, interpolation="nearest", cmap="gray")
-axs[1].set_title("wrap")
-axs[1].set_axis_off()
-plt.tight_layout()
-archive("figures/constant_vs_wrap.png")
-# plt.savefig("figures/constant_vs_wrap.png")
 # plt.show()
