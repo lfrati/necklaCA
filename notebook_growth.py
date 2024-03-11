@@ -81,7 +81,8 @@ def grid_progression(rule_num, start=7):
         ax.axis("off")
 
     plt.tight_layout()
-    archive(f"figures/rule_{rule_num}_grid_progression.pdf")
+    plt.savefig(f"figures/rule_{rule_num}_grid_progression.pdf")
+    plt.show()
 
 
 grid_progression(45)
@@ -132,6 +133,8 @@ for graph in graphs:
     cycles = set([len(cycle) for cycle in nx.simple_cycles(graph)])
     print(f"{std} {cycles}")
 
+#%%
+
 # Do rules's indegree variability stabilizes?
 indeg_scaling = []
 for rule_num in trange(0, 256):
@@ -145,23 +148,160 @@ for rule_num, stds in indeg_scaling[1:-1]:
 plt.grid()
 plt.show()
 
+#%%
+
+from collections import defaultdict
+
+
+def columnify(items, ncols):
+    """
+    Create a ncols matrix from a list of strings
+    E.g.
+        columnify([a,b,c,d,e,f,g,h], ncols=3):
+
+        returns
+
+        a,b,c,
+        d,e,f,
+        g,h
+    """
+    items = sorted(items, key=int)
+    nchunks = len(items) // ncols
+    reminder = len(items) % ncols
+    chunks = [items[ncols * i : ncols * (i + 1)] for i in range(nchunks)]
+    if reminder > 0:
+        chunks.append(items[-reminder:])
+    rows = [", ".join(chunk) for chunk in chunks]
+    return ",\n".join(rows)
+
+
+def grouper(d, threshold):
+    """
+    Assume d is a dictionary of (float|int, list)
+    Return a new dictionary that groups together (concat keys) all entries
+    that have absolute distance less than threshold
+    """
+    grouped = {}
+    for y, nums in d.items():
+        if len(grouped) == 0:
+            grouped[y] = nums
+        else:
+            existing = np.array(list(grouped.keys()))
+            dist = np.abs(existing - y)
+            if np.min(dist) < threshold:
+                values = existing[np.argmin(dist)]
+                new_group = np.max([values, y])
+                new_values = grouped[values] + nums
+                del grouped[values]
+                grouped[new_group] = new_values
+            else:
+                grouped[y] = nums
+    return grouped
+
+
+#######################################
+############## GROWERS ################
+#######################################
+
+growers = set()
 print("Growers:\n RULE_NUM, max(STD)")
 for rule_num, stds in indeg_scaling:
-    M = np.max(stds)
-    if M >= 6:
+    M = np.mean(stds)
+    if M >= 3:
+        growers.add(rule_num)
         print(rule_num, M)
-
-print("Shrinkers:\n RULE_NUM, max(STD)")
+print(growers)
+lbls = defaultdict(list)
 for rule_num, stds in indeg_scaling:
-    M = np.max(stds)
-    if M <= 1:
-        print(rule_num, M)
+    if rule_num in growers:
+        print(rule_num)
+        plt.plot(np.arange(7, 16), stds, ".-")
+        final = stds[-1]
+        lbls[final].append(str(rule_num))
+for i, (y, nums) in enumerate(grouper(lbls, threshold=3).items()):
+    plt.text(
+        15 + 0.2,
+        y,
+        columnify(nums, ncols=5),
+        fontsize=8,
+        va="top",
+        bbox=dict(facecolor="white", alpha=0.8),
+    )
+plt.grid()
+plt.xlabel("Sequence length")
+plt.ylabel("SD of indegree")
+plt.tight_layout()
+plt.savefig("figures/growers.pdf")
+plt.show()
+
+
+#######################################
+############## SHRINKERS ##############
+#######################################
+
+shrinkers = set()
+for rule_num, stds in indeg_scaling:
+    M = np.mean(stds)
+    if M <= 1.0:
+        shrinkers.add(rule_num)
+print("Shrinkers", shrinkers)
+
+
+lbls = defaultdict(list)
+for rule_num, stds in indeg_scaling:
+    if rule_num in shrinkers:
+        print(rule_num)
+        plt.plot(np.arange(7, 16), stds, ".-")
+        final = stds[-1]
+        lbls[final].append(str(rule_num))
+for i, (y, nums) in enumerate(lbls.items()):
+    plt.text(
+        15 + 0.3,
+        y,
+        columnify(nums, ncols=3),
+        fontsize=8,
+        va="top",
+        bbox=dict(facecolor="white", alpha=0.8),
+    )
+plt.xlabel("Sequence length")
+plt.ylabel("SD of indegree")
+plt.grid()
+plt.tight_layout()
+plt.savefig("figures/shrinkers.pdf")
+plt.show()
+
+#######################################
+############## MIDDLERS ###############
+#######################################
+
+lbls = defaultdict(list)
+# plt.figure(figsize=(4, 8))
+for rule_num, stds in indeg_scaling:
+    if rule_num not in shrinkers and rule_num not in growers:
+        plt.plot(np.arange(7, 16), stds, ".-")
+        final = stds[-1]
+        lbls[final].append(str(rule_num))
+for i, (y, nums) in enumerate(grouper(lbls, threshold=0.7).items()):
+    plt.text(
+        15 + 0.4,
+        y,
+        columnify(nums, ncols=8),
+        fontsize=8,
+        va="top",
+        bbox=dict(facecolor="white", alpha=0.7),
+    )
+plt.xlabel("Sequence length")
+plt.ylabel("SD of indegree")
+plt.grid()
+plt.tight_layout()
+plt.savefig("figures/middlers.pdf")
+plt.show()
 
 
 #%%
 
 
-def indegree_distribution(N):
+def cycles_distribution(N):
     cycles = []
     for rule_num in trange(256):
         rule = RULES[rule_num]
@@ -174,15 +314,39 @@ def indegree_distribution(N):
     return cycles
 
 
-cycles_12 = indegree_distribution(N=12)
-cycles_13 = indegree_distribution(N=13)
+cycles_12 = cycles_distribution(N=12)
+cycles_13 = cycles_distribution(N=13)
+cycles_14 = cycles_distribution(N=14)
+cycles_15 = cycles_distribution(N=15)
 
 #%%
 
 print(np.where(np.array(cycles_12) >= np.max(cycles_12)))
 print(np.where(np.array(cycles_13) >= np.max(cycles_13)))
+print(np.where(np.array(cycles_14) >= np.max(cycles_14)))
+print(np.where(np.array(cycles_15) >= np.max(cycles_15)))
 
-plt.plot(sorted(cycles_12), label="N=12")
-plt.plot(sorted(cycles_13), label="N=13")
-plt.legend()
+# plt.plot(sorted(cycles_12), label="N=12")
+# plt.plot(sorted(cycles_13), label="N=13")
+# plt.plot(sorted(cycles_14), label="N=14")
+plt.plot(cycles_15, ".", label="N=15")
+
+lbls = defaultdict(list)
+for rule, y in enumerate(cycles_15):
+    if y > 3:
+        lbls[y].append(str(rule))
+for i, (y, nums) in enumerate(grouper(lbls, threshold=2).items()):
+    plt.text(
+        260,
+        y,
+        columnify(nums, ncols=5),
+        fontsize=8,
+        va="top",
+        bbox=dict(facecolor="white", alpha=0.8),
+    )
+# plt.legend()
+plt.grid()
+plt.xlabel("Rule")
+plt.ylabel("Unique simple cycles, N=15")
+plt.tight_layout()
 plt.show()
