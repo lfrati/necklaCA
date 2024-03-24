@@ -30,38 +30,14 @@ def is_interactive():
     return not hasattr(main, "__file__")
 
 
-def archive(path, tag=False, force=False, **kwargs):
-    """
-    Get a tag for the current line with format:
-        {short_git_hash}-{__file__}-{lineno}
-    """
-    if is_interactive():
+def archive(path, force=False, **kwargs):
+    force = force or FORCE
+    if is_interactive() and not force:
         print(f"Running in interactive mode. Showing plot instead of saving to: {path}")
         plt.show()
         return
-
-    filename = path
-
-    if tag:
-        head = get_head_name()
-        commit = Path(f".git/refs/heads/{head}").read_text().strip()[:8]
-        caller = inspect.currentframe().f_back
-        caller_line = caller.f_lineno  # f_back = the caller, not us
-        caller_file = Path(inspect.getfile(caller)).name
-
-        # if there are multiple folders insert the tag right before
-        # the filename e.g. ./figures/plot.pdf -> ./figures/TAG_plot.pdf
-        path = Path(path)
-        parent = path.parent
-        name = path.name
-        filename = f"{parent}/{commit}:{caller_file}:{caller_line}-{name}"
-
-
-    if force or FORCE:
-        plt.savefig(filename, **kwargs)
-        print(f"Saved {filename}")
-    else:
-        print(f"{filename} exists. Skipping...")
+    plt.savefig(path, **kwargs)
+    print(f"Saved {path}")
     plt.close()
 
 

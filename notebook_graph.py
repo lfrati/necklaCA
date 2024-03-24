@@ -480,7 +480,7 @@ for i, N in tqdm(enumerate(xs)):
         0.95,
         0.95,
         f"{N}",
-        fontsize=10,
+        fontsize=14,
         horizontalalignment="center",
         verticalalignment="center",
         color="red" if N in [8, 16] else "black",
@@ -492,7 +492,5 @@ for i, N in tqdm(enumerate(xs)):
 # archive(f"figures/rule_90_progression.pdf")
 format_axes(fig)
 plt.tight_layout()
-# archive(f"figures/rule_90_progression.pdf")
-archive(f"figures/rule_90_progression.png")
-
-# plt.show()
+plt.savefig(f"figures/rule_90_progression.pdf")
+plt.show()
