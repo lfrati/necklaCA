@@ -50,7 +50,7 @@ def compare(N, rule, layout="sfdp"):
     for ax, edges, title in zip(
         axs,
         [all_edges(N, rule), necklaces_edges(N, rule)],
-        ["all nodes:", "necklaces only:"],
+        ["all nodes", "necklaces only"],
     ):
 
         # no digraph because arrowheads are obnoxious
@@ -73,10 +73,18 @@ def compare(N, rule, layout="sfdp"):
             "arrowsize": 6,
         }
         nx.draw_networkx(G, pos=pos, with_labels=False, ax=ax, **options)
-
-        ax.axis("off")
-        ax.set_title(title)
-    plt.suptitle(f"Rule {rule}")
+        # ax.axis("off")
+        ax.text(
+            0.95,
+            0.95,
+            title,
+            transform=ax.transAxes,
+            horizontalalignment="right",
+            verticalalignment="center",
+            fontsize=12,
+            color="black",
+        )
+        # ax.set_title(title, fontsize=14)
     plt.tight_layout()
     plt.savefig(f"figures/all_vs_necks_rule{rule}_N{N}.pdf")
     # plt.show()
@@ -86,6 +94,6 @@ def compare(N, rule, layout="sfdp"):
 #%%
 
 N = 15
-for rule in tqdm([179, 104, 238]):
+for rule in tqdm([179, 238]):
     # rule = np.random.randint(256)
     compare(N, rule)
