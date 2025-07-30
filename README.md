@@ -1,4 +1,5 @@
-# necklaCA
+# Networks of Binary Necklaces Induced by Elementary Cellular Automata Rules
+<img width="4000" height="4000" alt="11-kamada_kawai-all" src="https://github.com/user-attachments/assets/3c42b23e-8965-448f-9bef-d4c4cda73666" />
 
 ## Dependencies
 Generate data: `numba matplotlib numpy`
